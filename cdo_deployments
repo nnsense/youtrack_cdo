@@ -1,0 +1,31 @@
+var entities = require('@jetbrains/youtrack-scripting-api/entities');
+
+exports.rule = entities.Issue.onChange({
+  title: 'Template for CDO deployments',
+  guard: function(ctx) {
+    return ctx.issue.fields.becomes('Problem Type', 'Deployment') && ctx.issue.fields.description !== "";
+  },
+  action: function(ctx) {
+    ctx.issue.description = (
+    "# New deployment request\n" +
+    "These are our requirements to request a new deployment.\n" +
+    "**NOTE: regardless the urgency or any deadline, we cannot proceed with the deployment without these information.**\n" +
+    "\n" +
+    "## Deployment Type\n" +
+    "Please specify the deployment type on the related sidebar's field. A new field will be displayed, 'EOL'. If this is a PROD or UAT environment, please set the **end of contract**. If this is a DEV, PERF testing or any other deployment, please set **the host (or cluster) termination date**.\n" +
+    "\n" +
+    "## Deployment details\n" +
+    "Please attach to this ticket the complete list of the instances or just list them here. We need to know how many instances you need, their type and the volume size. For the specification, you can either list CPU/RAM size or use the AWS type. ie:\n" +
+    "3 API / 8vCPU, 16GB RAM, 100 GB volume\n" +
+    "or\n" +
+    "3 API / m5.xlarge, 100 GB volume\n" +
+    "\n" +
+    "Hostnames are generated using this convention: CUSTOMER-API1-A, which defines the customer name, the tier, the instance number and the availability zone the instance is deployed. If you need hostnames in a different format please list them here.\n" +
+    "\n" +
+    "## Deployment cost estimation\n" +
+    "\n" +
+    "We also need the cost for this deployment approved, if you know the cost please put the value into the field **Deployment cost (USD)**, by doing it **we assume the cost has been already approved**. If you're not sure, we can help to calculate the cost but you'll need to get it approved before we start. If this is the case, please type zero (0), we'll update it once we have an estimation."
+    );
+  },
+  requirements: {}
+});
