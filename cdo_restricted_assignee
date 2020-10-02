@@ -1,0 +1,18 @@
+var entities = require('@jetbrains/youtrack-scripting-api/entities');
+var workflow = require('@jetbrains/youtrack-scripting-api/workflow');
+
+exports.rule = entities.Issue.onChange({
+  title: 'Only Cloud-Ops can assign this ticket.',
+  guard: function(ctx) {
+    var fs = ctx.issue.fields;
+    return fs.isChanged(ctx.Assignee);
+  },
+  action: function(ctx) {
+    workflow.check(ctx.currentUser.isInGroup('Cloud DevOps-team'), 'Only Cloud-Ops can assign the ticket');
+  },
+  requirements: {
+    Assignee: {
+      type: entities.User.fieldType
+    }
+  }
+});

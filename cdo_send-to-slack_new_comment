@@ -1,0 +1,48 @@
+// Thanks to Michael Rush for the original version of this rule (https://software-development.dfstudio.com/youtracks-new-javascript-workflows-make-slack-integration-a-breeze-d3275605d565)
+// This is a slightly different use of the script, to just send new ticket comments to slack
+
+var SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/TDJ07JFHV/XXXXXXXXXXX/WJHU232H32HHUH23';
+var entities = require('@jetbrains/youtrack-scripting-api/entities');
+var http = require('@jetbrains/youtrack-scripting-api/http');
+
+exports.rule = entities.Issue.onChange({
+  title: 'Send notification to slack when a comment is added to a ticket',
+  guard: function(ctx) {
+    return ctx.issue.comments.added;
+  },
+  
+  action: function(ctx) {
+    var issue = ctx.issue;
+    // Checking if the comment is empty is required to delete a comment
+    if (issue.comments.added.isNotEmpty()) {
+      var comment_url = issue.comments.last().url;
+      var issueLink = '<' + comment_url + "|" + issue.id + '>';
+      var created = issue.comments.last().created;
+      var authorName = issue.comments.added.last().author.fullName;
+      var message = "New comment to " + issueLink + " added by " + authorName ;
+      var comment = issue.comments.last().text;
+      var shortened_comment = comment.substring(0, 1500);
+
+      var payload = {
+        "attachments": [{
+          "fallback": message,
+          "pretext": message,
+          "color": issue.fields.Priority.backgroundColor || "#edb431",
+          "text": shortened_comment,
+          "footer": "CloudBot",
+          "ts": created
+        }]
+      };
+
+      var connection = new http.Connection(SLACK_WEBHOOK_URL, null, 2000);
+      var response = connection.postSync('', null, JSON.stringify(payload));
+
+      if (!response.isSuccess) {
+        console.warn('Failed to post notification to Slack. Details: ' + response.toString());
+      }
+    }
+  },
+  
+  requirements: {
+  }
+});

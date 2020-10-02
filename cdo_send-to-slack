@@ -1,0 +1,88 @@
+// Thanks to Michael Rush for the original version of this rule (https://software-development.dfstudio.com/youtracks-new-javascript-workflows-make-slack-integration-a-breeze-d3275605d565)
+
+var SLACK_WEBHOOK_URL = 'https://hooks.slack.com/services/TDJ07JFHV/XXXXXXXXXXX/WJHU232H32HHUH23';
+var entities = require('@jetbrains/youtrack-scripting-api/entities');
+var http = require('@jetbrains/youtrack-scripting-api/http');
+
+exports.rule = entities.Issue.onChange({
+  title: 'Send notification to slack when an issue is reported, resolved, or reopened',
+  guard: function(ctx) {
+    return ctx.issue.becomesReported || ctx.issue.becomesResolved || ctx.issue.becomesUnresolved;
+  },
+  
+  action: function(ctx) {
+    var issue = ctx.issue;
+    var issueLink = '<' + issue.url + "|" + issue.id + '>';
+    var message, isNew;
+
+    if (issue.becomesReported) {
+      message = "A new ticket has been created on YouTrack: ";
+      isNew = true;
+    } else if (issue.becomesResolved) {
+      message = "Ticket on YouTrack flagged as completed: ";
+      isNew = false;
+    } else if (issue.becomesUnresolved) {
+      message = "Ticket on YouTrack reopened: ";
+      isNew = false;
+    }
+    
+    message += issue.summary;
+
+    var changedByTitle = '',
+      changedByName = '';
+
+    if (isNew) {
+      changedByTitle = "Created By";
+      changedByName = issue.reporter.fullName;
+    } else {
+      changedByTitle = "Updated By";
+      changedByName = issue.updatedBy.fullName;
+    }
+
+    var payload = {
+      "attachments": [{
+        "fallback": message + " (" + issueLink + ")",
+        "pretext": message + " (" + issueLink + ")",
+        "color": issue.fields.Priority.backgroundColor || "#edb431",
+        "fields": [{
+          "title": "State",
+          "value": issue.fields.State.name,
+          "short": true
+        },
+          {
+            "title": "Priority",
+            "value": issue.fields.Priority.name,
+            "short": true
+          },
+          {
+            "title": "Assignee",
+            "value": issue.fields.Assignee ? issue.fields.Assignee.fullName : '',
+            "short": true
+          },
+          {
+            "title": changedByTitle,
+            "value": changedByName,
+            "short": true
+          }
+        ]
+      }]
+    };
+
+    var connection = new http.Connection(SLACK_WEBHOOK_URL, null, 2000);
+    var response = connection.postSync('', null, JSON.stringify(payload));
+    if (!response.isSuccess) {
+      console.warn('Failed to post notification to Slack. Details: ' + response.toString());
+    }
+  },
+  requirements: {
+    Priority: {
+      type: entities.EnumField.fieldType
+    },
+    State: {
+      type: entities.State.fieldType
+    },
+    Assignee: {
+      type: entities.User.fieldType
+    }
+  }
+});
