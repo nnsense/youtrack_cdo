@@ -11,4 +11,6 @@ Modules:
 
 **cdo_restricted_assignee**: This module restrict the change of the Assignee field to the team itself. Prevent people to randomly assign the ticket, skipping our "traige" 
 
-**cdo_send-to-slack**: This is forwarding any ticket (new or changed) to slack cdo_send-to-slack_new_comment: Same as send-to-slack, this forward new comments instead.
+**cdo_send-to-slack**: This is forwarding any ticket (new or changed) to slack
+
+**cdo_send-to-slack_new_comment**: Same as send-to-slack, this forward new comments instead.
